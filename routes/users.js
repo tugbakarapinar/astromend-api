@@ -3,6 +3,11 @@ const router  = express.Router();
 const bcrypt  = require('bcrypt');
 const saltRounds = 10;
 
+// ─── TEST ENDPOINT ─────────────────────────────────────────────
+router.get('/', (req, res) => {
+  res.send('Astromend account route çalışıyor 🚀');
+});
+
 // ─── KAYIT ─────────────────────────────────────────────────────
 router.post('/', async (req, res) => {
   const { username, email, password_hash, confirm_password, birth_date, phone } = req.body;
