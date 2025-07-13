@@ -1,5 +1,4 @@
 // routes/users.js
-
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
@@ -27,7 +26,7 @@ router.post('/register', async (req, res, next) => {
       return res.status(409).json({ message: 'Bu e-posta zaten kayıtlı.' });
     }
 
-    // Hash password if bcrypt is used
+    // TODO: bcrypt.hash for production
     // const hashed = await bcrypt.hash(password, 10);
 
     // Insert new user
@@ -67,7 +66,12 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ message: 'Şifre hatalı.' });
     }
 
-    return res.status(200).json({ success: true, userId: user.id, username: user.username, email: user.email });
+    return res.status(200).json({
+      success: true,
+      userId: user.id,
+      username: user.username,
+      email: user.email
+    });
   } catch (err) {
     next(err);
   }
