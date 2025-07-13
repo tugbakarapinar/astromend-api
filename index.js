@@ -2,7 +2,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const pool = require('./db'); // DB bağlantı havuzu
+const pool = require('./config/db'); // DB bağlantı havuzu (config klasöründeki db.js)
 
 const app = express();
 
@@ -46,5 +46,5 @@ app.use((err, req, res, next) => {
 // Server’ı başlat
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
