@@ -11,12 +11,12 @@ router.post('/register', async (req, res, next) => {
       email,
       password,
       confirm_password,
-      birth_date,
+      birthdate,   // 'birthdate' olarak güncellendi
       phone
     } = req.body;
 
     // Basit onaylama
-    if (!username || !email || !password || !confirm_password || !birth_date || !phone) {
+    if (!username || !email || !password || !confirm_password || !birthdate || !phone) {
       return res.status(400).json({ message: 'Tüm alanlar zorunludur.' });
     }
     if (password !== confirm_password) {
@@ -32,12 +32,12 @@ router.post('/register', async (req, res, next) => {
       return res.status(409).json({ message: 'Bu e-posta zaten kayıtlı.' });
     }
 
-    // Yeni kullanıcı ekleme: password_hash yerine password kullanıyoruz
+    // Yeni kullanıcı ekleme
     const [result] = await pool.query(
       `INSERT INTO users
-        (username, email, password, birth_date, phone)
+         (username, email, password, birthdate, phone)
        VALUES (?, ?, ?, ?, ?)`,
-      [username, email, password, birth_date, phone]
+      [username, email, password, birthdate, phone]
     );
 
     return res.status(201).json({ success: true, userId: result.insertId });
