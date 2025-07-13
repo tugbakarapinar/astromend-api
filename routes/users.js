@@ -3,15 +3,17 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+// Parola güvenliği için bcrypt (isteğe bağlı)
+// const bcrypt = require('bcrypt');
 
-router.post('/register', async (req, res, next) => {
+// Kayıt endpoint'iouter.post('/register', async (req, res, next) => {
   try {
     const {
       username,
       email,
       password,
       confirm_password,
-      birthdate,   // 'birthdate' olarak güncellendi
+      birthdate,
       phone
     } = req.body;
 
@@ -25,22 +27,56 @@ router.post('/register', async (req, res, next) => {
 
     // Kullanıcı zaten var mı?
     const [existing] = await pool.query(
-      `SELECT id FROM users WHERE email = ?`,
+      'SELECT id FROM users WHERE email = ?',
       [email]
     );
     if (existing.length) {
       return res.status(409).json({ message: 'Bu e-posta zaten kayıtlı.' });
     }
 
+    // TODO: bcrypt.hash için aşağıdakini kullanabilirsiniz
+    // const hashed = await bcrypt.hash(password, 10);
+
     // Yeni kullanıcı ekleme
     const [result] = await pool.query(
       `INSERT INTO users
          (username, email, password, birthdate, phone)
        VALUES (?, ?, ?, ?, ?)`,
-      [username, email, password, birthdate, phone]
+      [username, email, password /* veya hashed */, birthdate, phone]
     );
 
     return res.status(201).json({ success: true, userId: result.insertId });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Giriş endpoint'i
+router.post('/login', async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email ve şifre zorunludur.' });
+    }
+
+    const [rows] = await pool.query(
+      'SELECT id, username, email, password FROM users WHERE email = ?',
+      [email]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+    }
+
+    const user = rows[0];
+    // Eğer bcrypt kullanıyorsanız:
+    // const match = await bcrypt.compare(password, user.password);
+    // if (!match) {...}
+
+    if (user.password !== password) {
+      return res.status(401).json({ message: 'Şifre hatalı.' });
+    }
+
+    return res.status(200).json({ success: true, userId: user.id, username: user.username, email: user.email });
   } catch (err) {
     next(err);
   }
