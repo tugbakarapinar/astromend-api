@@ -16,7 +16,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Sağlık kontrolü endpoint’i\app.get('/health', async (req, res) => {
+// Sağlık kontrolü endpoint’i
+app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
     return res.status(200).send('OK');
@@ -29,10 +30,11 @@ app.use((req, res, next) => {
 // User-related routes (register & login)
 app.use('/api/account', require('./routes/users'));
 
-// Other service routes\app.use('/api/messages',    require('./routes/messages'));
+// Other service routes
+app.use('/api/messages', require('./routes/messages'));
 app.use('/api/favoriler', require('./routes/favoriler'));
 app.use('/api/hediyeler', require('./routes/hediyeler'));
-app.use('/api/puan',      require('./routes/puan'));
+app.use('/api/puan', require('./routes/puan'));
 app.use('/api/bildirimler', require('./routes/bildirimler'));
 
 // Hata yönetimi middleware’ı
@@ -44,5 +46,5 @@ app.use((err, req, res, next) => {
 // Server’ı başlat
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(` Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
