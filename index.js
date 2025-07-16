@@ -1,8 +1,8 @@
-// index.js
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const pool = require('./config/db'); // DB bağlantı havuzu
+const pool = require('./config/db'); 
 
 const app = express();
 
@@ -16,7 +16,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Sağlık kontrolü endpoint’i
+
 app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -36,6 +36,7 @@ app.use('/api/favoriler',   require('./routes/favoriler'));
 app.use('/api/hediyeler',   require('./routes/hediyeler'));
 app.use('/api/puan',        require('./routes/puan'));
 app.use('/api/bildirimler', require('./routes/bildirimler'));
+app.use('/api/burclar',     require('./routes/burclar')); 
 
 // Hata yönetimi middleware’ı
 app.use((err, req, res, next) => {

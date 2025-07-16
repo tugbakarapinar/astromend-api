@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db'); // MySQL bağlantı havuzu
 const bcrypt = require('bcrypt'); // şifre hash
+const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 
 // POST /api/account/register
@@ -26,7 +27,7 @@ router.post(
     try {
       const hashed = await bcrypt.hash(password, 10);
       await pool.query(
-        'INSERT INTO users (username, email, password_hash, birthdate, phone) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO users (username, email, password, birthdate, phone) VALUES (?, ?, ?, ?, ?)',
         [username, email, hashed, birthdate, phone]
       );
       return res.status(201).json({ success: true, message: 'Kayıt başarılı' });
@@ -49,14 +50,14 @@ router.post(
     const { email, password } = req.body;
     try {
       const [rows] = await pool.query(
-        'SELECT id, username, password_hash, email FROM users WHERE email = ?',
+        'SELECT id, username, password, email FROM users WHERE email = ?',
         [email]
       );
       if (rows.length === 0) {
         return res.status(401).json({ message: 'Geçersiz kimlik bilgileri' });
       }
       const user = rows[0];
-      const valid = await bcrypt.compare(password, user.password_hash);
+      const valid = await bcrypt.compare(password, user.password);
       if (!valid) {
         return res.status(401).json({ message: 'Geçersiz kimlik bilgileri' });
       }
