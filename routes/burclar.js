@@ -1,63 +1,8 @@
-// backend/routes/burclar.js
-
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 
-// GET /api/burclar - TÜM BURÇ LİSTESİ (ORİJİNAL)
-router.get('/', async (req, res) => {
-  try {
-    const [rows] = await pool.query(
-      `SELECT 
-         id,
-         name,
-         start_date,
-         end_date,
-         description
-       FROM zodiac_signs
-       ORDER BY id ASC`
-    );
-    return res.json(rows);
-  } catch (err) {
-    console.error('GET /api/burclar error:', err);
-    return res.status(500).json({ message: 'Burçlar yüklenirken hata oluştu.' });
-  }
-});
-
-// YENİ EKLENEN KISIM - KULLANICI BURCUNU HESAPLA
-router.get('/kullanici', async (req, res) => {
-  try {
-    // 1. Doğum tarihini al (ÖNCEKİ KODLARLA UYUMLU)
-    const [userRows] = await pool.query(
-      'SELECT birthdate FROM users WHERE id = ?',
-      [req.query.userId] // Query param ile userId al
-    );
-
-    if (!userRows.length || !userRows[0].birthdate) {
-      return res.json({ success: false, message: 'Doğum tarihi bulunamadı' });
-    }
-
-    // 2. Burç hesapla (VERİTABANI YERİNE YEREL FONKSİYON)
-    const zodiacSign = calculateZodiac(userRows[0].birthdate);
-    
-    // 3. Burç detaylarını getir
-    const [zodiacRows] = await pool.query(
-      'SELECT name, description FROM zodiac_signs WHERE name = ?',
-      [zodiacSign]
-    );
-
-    return res.json({
-      success: true,
-      zodiac: zodiacRows[0] || null
-    });
-
-  } catch (err) {
-    console.error('GET /api/burclar/kullanici error:', err);
-    return res.status(500).json({ message: 'Burç bilgisi alınamadı' });
-  }
-});
-
-// YARDIMCI FONKSİYON (DIŞARIDA TANIMLI)
+// YEREL HESAPLAMA fonksiyonu direkt buraya kopyalanabilir
 function calculateZodiac(birthdate) {
   const date = new Date(birthdate);
   const month = date.getMonth() + 1;
@@ -78,7 +23,47 @@ function calculateZodiac(birthdate) {
   return 'Bilinmiyor';
 }
 
-module.exports = {
-  router,
-  calculateZodiac
-};
+// GET /api/burclar
+router.get('/', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, name, start_date, end_date, description FROM zodiac_signs ORDER BY id ASC`
+    );
+    return res.json(rows);
+  } catch (err) {
+    console.error('GET /api/burclar error:', err);
+    return res.status(500).json({ message: 'Burçlar yüklenirken hata oluştu.' });
+  }
+});
+
+// GET /api/burclar/kullanici
+router.get('/kullanici', async (req, res) => {
+  try {
+    const [userRows] = await pool.query(
+      'SELECT birthdate FROM users WHERE id = ?',
+      [req.query.userId]
+    );
+
+    if (!userRows.length || !userRows[0].birthdate) {
+      return res.json({ success: false, message: 'Doğum tarihi bulunamadı' });
+    }
+
+    const zodiacSign = calculateZodiac(userRows[0].birthdate);
+    
+    const [zodiacRows] = await pool.query(
+      'SELECT name, description FROM zodiac_signs WHERE name = ?',
+      [zodiacSign]
+    );
+
+    return res.json({
+      success: true,
+      zodiac: zodiacRows[0] || null
+    });
+
+  } catch (err) {
+    console.error('GET /api/burclar/kullanici error:', err);
+    return res.status(500).json({ message: 'Burç bilgisi alınamadı' });
+  }
+});
+
+module.exports = router; // SADECE router export et

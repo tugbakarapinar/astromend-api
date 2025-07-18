@@ -1,12 +1,10 @@
-// backend/routes/users.js
-
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db'); // MySQL bağlantı havuzu
-const bcrypt = require('bcrypt'); // şifre hash
+const bcrypt = require('bcrypt');      // şifre hash
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const { calculateZodiac } = require('./burclar');
+const { calculateZodiac } = require('./burclar'); // burç hesaplama fonksiyonu
 
 // POST /api/account/register
 router.post(
@@ -62,13 +60,11 @@ router.post(
       if (!valid) {
         return res.status(401).json({ message: 'Geçersiz kimlik bilgileri' });
       }
-      // JWT oluştur
       const token = jwt.sign(
-        { userId: user.id, email: user.email }, // payload
-        process.env.JWT_SECRET,                  // secret
-        { expiresIn: '7d' }                      // seçenek
+        { userId: user.id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
       );
-      // Token ve kullanıcı bilgilerini döndür
       return res.json({
         success: true,
         token,
@@ -83,16 +79,7 @@ router.post(
   }
 );
 
-// backend/routes/users.js
-
-const express = require('express');
-const router = express.Router();
-const pool = require('../config/db');
-const jwt = require('jsonwebtoken');
-// burclar.js dosyanda export ettiğin fonksiyonun adını buraya yaz
-const { calculateZodiac } = require('./burclar');
-
-/// GET /api/account/profile
+// GET /api/account/profile
 router.get('/profile', async (req, res) => {
   try {
     const auth = req.headers.authorization;
@@ -103,7 +90,6 @@ router.get('/profile', async (req, res) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const userId = payload.userId;
 
-    // Veritabanından temel kullanıcı bilgilerini çek
     const [rows] = await pool.query(
       'SELECT id, username, email, birthdate, phone FROM users WHERE id = ?',
       [userId]
@@ -112,11 +98,9 @@ router.get('/profile', async (req, res) => {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
     }
 
-    // Aldığımız satırı değişkene at ve burcunu hesapla
     const user = rows[0];
     const zodiacSign = calculateZodiac(user.birthdate);
 
-    // Cevabı artık zodiacSign ile birlikte döndür
     return res.json({
       success: true,
       id: user.id,
@@ -133,4 +117,3 @@ router.get('/profile', async (req, res) => {
 });
 
 module.exports = router;
-
