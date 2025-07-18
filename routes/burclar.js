@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 
-// YEREL HESAPLAMA fonksiyonu direkt buraya kopyalanabilir
+// YEREL HESAPLAMA fonksiyonu
 function calculateZodiac(birthdate) {
   const date = new Date(birthdate);
   const month = date.getMonth() + 1;
@@ -49,7 +49,7 @@ router.get('/kullanici', async (req, res) => {
     }
 
     const zodiacSign = calculateZodiac(userRows[0].birthdate);
-    
+
     const [zodiacRows] = await pool.query(
       'SELECT name, description FROM zodiac_signs WHERE name = ?',
       [zodiacSign]
@@ -66,4 +66,6 @@ router.get('/kullanici', async (req, res) => {
   }
 });
 
+
 module.exports = router;
+
