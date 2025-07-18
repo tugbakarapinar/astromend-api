@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 
-// YEREL HESAPLAMA fonksiyonu
+// Burç hesaplama fonksiyonu
 function calculateZodiac(birthdate) {
   const date = new Date(birthdate);
   const month = date.getMonth() + 1;
@@ -23,7 +23,7 @@ function calculateZodiac(birthdate) {
   return 'Bilinmiyor';
 }
 
-// GET /api/burclar
+// GET /api/burclar  →  Tüm burçları döndürür
 router.get('/', async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -36,28 +36,39 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/burclar/kullanici
+// GET /api/burclar/kullanici?userId=1 → Kullanıcının burcunu ve açıklamasını döndürür
 router.get('/kullanici', async (req, res) => {
   try {
+    const userId = req.query.userId;
+    console.log("GELEN USERID:", userId);
+
+    if (!userId) {
+      return res.json({ success: false, message: "userId parametresi zorunludur." });
+    }
+
     const [userRows] = await pool.query(
       'SELECT birthdate FROM users WHERE id = ?',
-      [req.query.userId]
+      [userId]
     );
+    console.log("USER ROWS:", userRows);
 
     if (!userRows.length || !userRows[0].birthdate) {
+      console.log("Doğum tarihi yok.");
       return res.json({ success: false, message: 'Doğum tarihi bulunamadı' });
     }
 
     const zodiacSign = calculateZodiac(userRows[0].birthdate);
+    console.log("HESAPLANAN BURÇ:", zodiacSign);
 
     const [zodiacRows] = await pool.query(
       'SELECT name, description FROM zodiac_signs WHERE name = ?',
       [zodiacSign]
     );
+    console.log("ZODIAC ROWS:", zodiacRows);
 
     return res.json({
       success: true,
-      zodiac: zodiacRows[0] || null
+      zodiac: zodiacRows[0] || { name: zodiacSign, description: '' }
     });
 
   } catch (err) {
@@ -66,8 +77,4 @@ router.get('/kullanici', async (req, res) => {
   }
 });
 
-
-module.exports = {
-  router,
-  calculateZodiac
-};
+module.exports = router;
