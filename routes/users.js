@@ -4,7 +4,8 @@ const pool = require('../config/db'); // MySQL bağlantı havuzu
 const bcrypt = require('bcrypt');      // şifre hash
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const { calculateZodiac } = require('./burclar'); // burç hesaplama fonksiyonu
+const { calculateZodiac } = require('./burclar'); 
+
 
 // POST /api/account/register
 router.post(
