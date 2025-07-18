@@ -6,6 +6,7 @@ const pool = require('../config/db'); // MySQL bağlantı havuzu
 const bcrypt = require('bcrypt'); // şifre hash
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
+const { calculateZodiac } = require('./burclar');
 
 // POST /api/account/register
 router.post(
@@ -82,7 +83,16 @@ router.post(
   }
 );
 
-// GET /api/account/profile
+// backend/routes/users.js
+
+const express = require('express');
+const router = express.Router();
+const pool = require('../config/db');
+const jwt = require('jsonwebtoken');
+// burclar.js dosyanda export ettiğin fonksiyonun adını buraya yaz
+const { calculateZodiac } = require('./burclar');
+
+/// GET /api/account/profile
 router.get('/profile', async (req, res) => {
   try {
     const auth = req.headers.authorization;
@@ -92,6 +102,8 @@ router.get('/profile', async (req, res) => {
     const token = auth.split(' ')[1];
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const userId = payload.userId;
+
+    // Veritabanından temel kullanıcı bilgilerini çek
     const [rows] = await pool.query(
       'SELECT id, username, email, birthdate, phone FROM users WHERE id = ?',
       [userId]
@@ -99,7 +111,21 @@ router.get('/profile', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
     }
-    return res.json({ success: true, ...rows[0] });
+
+    // Aldığımız satırı değişkene at ve burcunu hesapla
+    const user = rows[0];
+    const zodiacSign = calculateZodiac(user.birthdate);
+
+    // Cevabı artık zodiacSign ile birlikte döndür
+    return res.json({
+      success: true,
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      birthdate: user.birthdate,
+      phone: user.phone,
+      zodiacSign
+    });
   } catch (err) {
     console.error('GET /api/account/profile error:', err);
     return res.status(401).json({ message: 'Geçersiz token veya yetkisiz erişim' });
@@ -107,3 +133,4 @@ router.get('/profile', async (req, res) => {
 });
 
 module.exports = router;
+

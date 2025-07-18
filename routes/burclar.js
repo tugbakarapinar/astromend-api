@@ -2,13 +2,11 @@
 
 const express = require('express');
 const router = express.Router();
-const pool = require('../config/db'); // MySQL bağlantı havuzu
+const pool = require('../config/db');
 
-// GET /api/burclar
+// GET /api/burclar - TÜM BURÇ LİSTESİ (ORİJİNAL)
 router.get('/', async (req, res) => {
   try {
-    // Veritabanından burçları çekiyoruz
-    // Örnek tablo: zodiac_signs (id, name, start_date, end_date, description)
     const [rows] = await pool.query(
       `SELECT 
          id,
@@ -19,7 +17,6 @@ router.get('/', async (req, res) => {
        FROM zodiac_signs
        ORDER BY id ASC`
     );
-    // JSON olarak yanıt dön
     return res.json(rows);
   } catch (err) {
     console.error('GET /api/burclar error:', err);
@@ -27,4 +24,61 @@ router.get('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+// YENİ EKLENEN KISIM - KULLANICI BURCUNU HESAPLA
+router.get('/kullanici', async (req, res) => {
+  try {
+    // 1. Doğum tarihini al (ÖNCEKİ KODLARLA UYUMLU)
+    const [userRows] = await pool.query(
+      'SELECT birthdate FROM users WHERE id = ?',
+      [req.query.userId] // Query param ile userId al
+    );
+
+    if (!userRows.length || !userRows[0].birthdate) {
+      return res.json({ success: false, message: 'Doğum tarihi bulunamadı' });
+    }
+
+    // 2. Burç hesapla (VERİTABANI YERİNE YEREL FONKSİYON)
+    const zodiacSign = calculateZodiac(userRows[0].birthdate);
+    
+    // 3. Burç detaylarını getir
+    const [zodiacRows] = await pool.query(
+      'SELECT name, description FROM zodiac_signs WHERE name = ?',
+      [zodiacSign]
+    );
+
+    return res.json({
+      success: true,
+      zodiac: zodiacRows[0] || null
+    });
+
+  } catch (err) {
+    console.error('GET /api/burclar/kullanici error:', err);
+    return res.status(500).json({ message: 'Burç bilgisi alınamadı' });
+  }
+});
+
+// YARDIMCI FONKSİYON (DIŞARIDA TANIMLI)
+function calculateZodiac(birthdate) {
+  const date = new Date(birthdate);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return 'Koç';
+  if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return 'Boğa';
+  if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return 'İkizler';
+  if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return 'Yengeç';
+  if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return 'Aslan';
+  if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return 'Başak';
+  if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return 'Terazi';
+  if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return 'Akrep';
+  if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return 'Yay';
+  if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return 'Oğlak';
+  if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return 'Kova';
+  if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return 'Balık';
+  return 'Bilinmiyor';
+}
+
+module.exports = {
+  router,
+  calculateZodiac
+};
