@@ -66,7 +66,4 @@ router.get('/kullanici', async (req, res) => {
   }
 });
 
-module.exports = {
-  router,
-  calculateZodiac
-};
+module.exports = router;
