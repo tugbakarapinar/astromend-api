@@ -1,15 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../config/db'); // MySQL bağlantı havuzu
-const bcrypt = require('bcrypt');      // şifre hash
+const pool = require('../config/db'); 
+const bcrypt = require('bcrypt');      
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-<<<<<<< HEAD
 const { calculateZodiac } = require('./burclar'); 
-
-=======
-const { calculateZodiac } = require('./burclar'); // burç hesaplama fonksiyonu
->>>>>>> 6b7807956ead456c3ee3c2ce8aa92ea20c26aee1
 
 // POST /api/account/register
 router.post(
