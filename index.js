@@ -35,14 +35,17 @@ app.use('/api/hediyeler',   require('./routes/hediyeler'));
 app.use('/api/puan',        require('./routes/puan'));
 app.use('/api/bildirimler', require('./routes/bildirimler'));
 
+// -- **BURÇLAR ROUTER'I DOĞRU KULLAN** --
 const burclar = require('./routes/burclar');
 app.use('/api/burclar', burclar.router);
 
+// Hata yönetimi middleware’ı
 app.use((err, req, res, next) => {
   console.error('Error Handler:', err);
   res.status(500).json({ message: 'Sunucu hatası' });
 });
 
+// Server’ı başlat
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
