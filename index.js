@@ -35,9 +35,13 @@ app.use('/api/hediyeler',   require('./routes/hediyeler'));
 app.use('/api/puan',        require('./routes/puan'));
 app.use('/api/bildirimler', require('./routes/bildirimler'));
 
-// -- **BURÇLAR ROUTER’I DOĞRU KULLAN** --
+// BURÇLAR ROUTER’I
 const burclar = require('./routes/burclar');
 app.use('/api/burclar', burclar);
+
+// --- DOĞUM HARİTASI ROUTER’I (EKLENDİ) ---
+const birthcharts = require('./routes/birthcharts');
+app.use('/api/birthcharts', birthcharts);
 
 // Hata yönetimi middleware’ı
 app.use((err, req, res, next) => {
