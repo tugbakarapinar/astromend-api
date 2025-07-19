@@ -25,48 +25,42 @@ function calculateZodiac(birthdate) {
   return 'Bilinmiyor';
 }
 
-// GET /api/burclar  →  Tüm burçları döndürür
+// GET /api/burclar → Tüm burçları döndürür
 router.get('/', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, name, start_date, end_date, description FROM zodiac_signs ORDER BY id ASC`
+      `SELECT id, name, start_date, end_date, description 
+       FROM zodiac_signs 
+       ORDER BY id ASC`
     );
-    return res.json(rows);
+    res.json(rows);
   } catch (err) {
     console.error('GET /api/burclar error:', err);
-    return res.status(500).json({ message: 'Burçlar yüklenirken hata oluştu.' });
+    res.status(500).json({ message: 'Burçlar yüklenirken hata oluştu.' });
   }
 });
 
-// GET /api/burclar/kullanici?userId=1 → Kullanıcının burcunu ve açıklamasını döndürür
+// GET /api/burclar/kullanici?userId=1 → Kullanıcının burcunu döndürür
 router.get('/kullanici', async (req, res) => {
   try {
     const userId = req.query.userId;
-    console.log("GELEN USERID:", userId);
-
     if (!userId) {
-      return res.json({ success: false, message: "userId parametresi zorunludur." });
+      return res.status(400).json({ success: false, message: 'userId parametresi zorunludur.' });
     }
 
     const [userRows] = await pool.query(
       'SELECT birthdate FROM users WHERE id = ?',
       [userId]
     );
-    console.log("USER ROWS:", userRows);
-
     if (!userRows.length || !userRows[0].birthdate) {
-      console.log("Doğum tarihi yok.");
-      return res.json({ success: false, message: 'Doğum tarihi bulunamadı' });
+      return res.json({ success: false, message: 'Doğum tarihi bulunamadı.' });
     }
 
     const zodiacSign = calculateZodiac(userRows[0].birthdate);
-    console.log("HESAPLANAN BURÇ:", zodiacSign);
-
     const [zodiacRows] = await pool.query(
       'SELECT name, description FROM zodiac_signs WHERE name = ?',
       [zodiacSign]
     );
-    console.log("ZODIAC ROWS:", zodiacRows);
 
     return res.json({
       success: true,
@@ -75,12 +69,8 @@ router.get('/kullanici', async (req, res) => {
 
   } catch (err) {
     console.error('GET /api/burclar/kullanici error:', err);
-    return res.status(500).json({ message: 'Burç bilgisi alınamadı' });
+    res.status(500).json({ message: 'Burç bilgisi alınamadı.' });
   }
 });
 
-// Hem router hem de hesaplama fonksiyonunu export ediyoruz
-module.exports = {
-  router,
-  calculateZodiac
-};
+module.exports = router;
