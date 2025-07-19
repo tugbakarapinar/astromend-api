@@ -1,23 +1,74 @@
-// backend/routes/messages.js
-
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db'); // MySQL bağlantısı için pool
 
-// GET /api/messages
+// Tüm mesajları getir
 router.get('/', async (req, res) => {
   try {
-    // Veritabanından mesajları çekiyoruz
     const [rows] = await pool.query(
       `SELECT id, sender, content, created_at AS timestamp
        FROM messages
        ORDER BY created_at DESC`
     );
-    // JSON olarak yanıt dön
     return res.json(rows);
   } catch (err) {
     console.error('GET /api/messages error:', err);
     return res.status(500).json({ message: 'Mesajlar yüklenirken hata oluştu.' });
+  }
+});
+
+// Belirli kullanıcıya ait mesajları getir
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const [rows] = await pool.query(
+      `SELECT id, sender, content, created_at AS timestamp
+       FROM messages
+       WHERE sender = ?
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+    return res.json(rows);
+  } catch (err) {
+    console.error('GET /api/messages/user/:userId error:', err);
+    return res.status(500).json({ message: 'Kullanıcı mesajları yüklenirken hata oluştu.' });
+  }
+});
+
+// Mesaj oluştur (ekle)
+router.post('/', async (req, res) => {
+  try {
+    const { sender, content } = req.body;
+    if (!sender || !content) {
+      return res.status(400).json({ message: 'Sender ve content zorunludur.' });
+    }
+    const [result] = await pool.query(
+      `INSERT INTO messages (sender, content) VALUES (?, ?)`,
+      [sender, content]
+    );
+    return res.status(201).json({
+      id: result.insertId,
+      sender,
+      content
+    });
+  } catch (err) {
+    console.error('POST /api/messages error:', err);
+    return res.status(500).json({ message: 'Mesaj eklenirken hata oluştu.' });
+  }
+});
+
+// Mesaj sil
+router.delete('/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    await pool.query(
+      `DELETE FROM messages WHERE id = ?`,
+      [id]
+    );
+    return res.json({ message: 'Mesaj silindi.' });
+  } catch (err) {
+    console.error('DELETE /api/messages/:id error:', err);
+    return res.status(500).json({ message: 'Mesaj silinirken hata oluştu.' });
   }
 });
 
