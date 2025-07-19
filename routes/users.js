@@ -72,6 +72,6 @@ router.get('/kullanici', async (req, res) => {
   }
 });
 
-// expose calculateZodiac for other modules
+// Gerekirse başka dosyalarda kullanabilmek için dışa aktar
 router.calculateZodiac = calculateZodiac;
 module.exports = router;
