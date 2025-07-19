@@ -1,3 +1,5 @@
+// routes/burclar.js
+
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
@@ -77,4 +79,8 @@ router.get('/kullanici', async (req, res) => {
   }
 });
 
-module.exports = router;
+// Hem router hem de hesaplama fonksiyonunu export ediyoruz
+module.exports = {
+  router,
+  calculateZodiac
+};

@@ -5,7 +5,7 @@ const pool = require('./config/db');
 
 const app = express();
 
-// CORS & JSON body-parser
+// CORS & JSON body‐parser
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
@@ -28,14 +28,14 @@ app.get('/health', async (req, res) => {
 // User-related routes (register & login)
 app.use('/api/account', require('./routes/users'));
 
-// Diğer service router'ları
+// Diğer service router’ları
 app.use('/api/messages',    require('./routes/messages'));
 app.use('/api/favoriler',   require('./routes/favoriler'));
 app.use('/api/hediyeler',   require('./routes/hediyeler'));
 app.use('/api/puan',        require('./routes/puan'));
 app.use('/api/bildirimler', require('./routes/bildirimler'));
 
-// -- **BURÇLAR ROUTER'I DOĞRU KULLAN** --
+// -- **BURÇLAR ROUTER’I DOĞRU KULLAN** --
 const burclar = require('./routes/burclar');
 app.use('/api/burclar', burclar);
 
