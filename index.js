@@ -28,7 +28,7 @@ app.get('/health', async (req, res) => {
 // User-related routes (register & login)
 app.use('/api/account', require('./routes/users'));
 
-// Diğer service router'ları (bunlar export'u "router" ise aynen kalsın)
+// Diğer service router'ları
 app.use('/api/messages',    require('./routes/messages'));
 app.use('/api/favoriler',   require('./routes/favoriler'));
 app.use('/api/hediyeler',   require('./routes/hediyeler'));
@@ -37,7 +37,7 @@ app.use('/api/bildirimler', require('./routes/bildirimler'));
 
 // -- **BURÇLAR ROUTER'I DOĞRU KULLAN** --
 const burclar = require('./routes/burclar');
-app.use('/api/burclar', burclar.router);
+app.use('/api/burclar', burclar);
 
 // Hata yönetimi middleware’ı
 app.use((err, req, res, next) => {
