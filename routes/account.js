@@ -1,3 +1,5 @@
+// routes/account.js
+
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
@@ -7,22 +9,18 @@ const bcrypt = require('bcryptjs');
 // LOGIN
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-
   try {
     const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
     if (!rows.length) {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
     }
-
     const user = rows[0];
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Şifre yanlış' });
     }
-
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     return res.status(200).json({ token });
-
   } catch (err) {
     console.error('Login error:', err);
     return res.status(500).json({ message: 'Sunucu hatası' });
@@ -32,7 +30,6 @@ router.post('/login', async (req, res) => {
 // REGISTER
 router.post('/register', async (req, res) => {
   console.log('📦 Gelen Body:', req.body); // Debug log
-
   const {
     name,
     email,
@@ -40,11 +37,10 @@ router.post('/register', async (req, res) => {
     confirm_password,
     birthdate,
     phone,
-    birthplace,     // <-- Doğru isim
-    birthtime       // <-- Doğru isim
+    birthplace,     // <-- ALT TİREL YOK!
+    birthtime       // <-- ALT TİREL YOK!
   } = req.body;
 
-  // Alan kontrolü
   if (!name || !email || !password || !confirm_password || !birthdate || !phone || !birthplace || !birthtime) {
     console.log('❗Eksik Alanlar:', {
       name, email, password, confirm_password, birthdate, phone, birthplace, birthtime
@@ -97,13 +93,10 @@ router.get('/profile', async (req, res) => {
       'SELECT id, username, email, birthdate, phone, birthplace, birthtime FROM users WHERE id = ?',
       [decoded.id]
     );
-
     if (!rows.length) {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
     }
-
     return res.status(200).json({ success: true, profile: rows[0] });
-
   } catch (err) {
     console.error('Profil error:', err);
     return res.status(401).json({ message: 'Geçersiz token' });
