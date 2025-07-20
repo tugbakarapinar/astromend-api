@@ -40,14 +40,14 @@ router.post('/register', async (req, res) => {
     confirm_password,
     birthdate,
     phone,
-    birth_place,
-    birth_time
+    birthplace,     // <-- Doğru isim
+    birthtime       // <-- Doğru isim
   } = req.body;
 
-  // Ek log ile hangi alan boş görülecek
-  if (!name || !email || !password || !confirm_password || !birthdate || !phone || !birth_place || !birth_time) {
+  // Alan kontrolü
+  if (!name || !email || !password || !confirm_password || !birthdate || !phone || !birthplace || !birthtime) {
     console.log('❗Eksik Alanlar:', {
-      name, email, password, confirm_password, birthdate, phone, birth_place, birth_time
+      name, email, password, confirm_password, birthdate, phone, birthplace, birthtime
     });
     return res.status(400).json({ message: 'Tüm alanlar zorunludur.' });
   }
@@ -72,7 +72,7 @@ router.post('/register', async (req, res) => {
     await pool.query(
       `INSERT INTO users (username, email, password, birthdate, phone, birthplace, birthtime)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [name, email, hashedPassword, birthdate, phone, birth_place, birth_time]
+      [name, email, hashedPassword, birthdate, phone, birthplace, birthtime]
     );
 
     return res.status(201).json({ message: 'Kayıt başarılı.' });
