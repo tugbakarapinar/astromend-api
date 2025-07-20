@@ -6,7 +6,7 @@ const pool = require('../config/db'); // MySQL bağlantısı için pool
 router.get('/', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, sender, content, created_at AS timestamp
+      `SELECT id, sender_id, receiver_id, message, is_read, created_at
        FROM messages
        ORDER BY created_at DESC`
     );
@@ -22,9 +22,9 @@ router.get('/user/:userId', async (req, res) => {
   try {
     const userId = req.params.userId;
     const [rows] = await pool.query(
-      `SELECT id, sender, content, created_at AS timestamp
+      `SELECT id, sender_id, receiver_id, message, is_read, created_at
        FROM messages
-       WHERE sender = ?
+       WHERE sender_id = ?
        ORDER BY created_at DESC`,
       [userId]
     );
@@ -38,18 +38,20 @@ router.get('/user/:userId', async (req, res) => {
 // Mesaj oluştur (ekle)
 router.post('/', async (req, res) => {
   try {
-    const { sender, content } = req.body;
-    if (!sender || !content) {
-      return res.status(400).json({ message: 'Sender ve content zorunludur.' });
+    const { sender_id, receiver_id, message } = req.body;
+    if (!sender_id || !receiver_id || !message) {
+      return res.status(400).json({ message: 'sender_id, receiver_id ve message zorunludur.' });
     }
     const [result] = await pool.query(
-      `INSERT INTO messages (sender, content) VALUES (?, ?)`,
-      [sender, content]
+      `INSERT INTO messages (sender_id, receiver_id, message, is_read) VALUES (?, ?, ?, 0)`,
+      [sender_id, receiver_id, message]
     );
     return res.status(201).json({
       id: result.insertId,
-      sender,
-      content
+      sender_id,
+      receiver_id,
+      message,
+      is_read: 0
     });
   } catch (err) {
     console.error('POST /api/messages error:', err);
