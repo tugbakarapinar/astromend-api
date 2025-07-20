@@ -74,4 +74,25 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+
+
+router.post('/delete-conversation', async (req, res) => {
+  try {
+    const { user1, user2 } = req.body;
+    if (!user1 || !user2) {
+      return res.status(400).json({ message: 'user1 ve user2 zorunludur.' });
+    }
+    await pool.query(
+      `DELETE FROM messages 
+       WHERE (sender_id = ? AND receiver_id = ?) 
+          OR (sender_id = ? AND receiver_id = ?)`,
+      [user1, user2, user2, user1]
+    );
+    return res.json({ message: 'Sohbet temizlendi.' });
+  } catch (err) {
+    console.error('POST /api/messages/delete-conversation error:', err);
+    return res.status(500).json({ message: 'Sohbet silinirken hata oluştu.' });
+  }
+});
+
 module.exports = router;
