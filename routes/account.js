@@ -44,7 +44,11 @@ router.post('/register', async (req, res) => {
     birth_time
   } = req.body;
 
+  // Ek log ile hangi alan boş görülecek
   if (!name || !email || !password || !confirm_password || !birthdate || !phone || !birth_place || !birth_time) {
+    console.log('❗Eksik Alanlar:', {
+      name, email, password, confirm_password, birthdate, phone, birth_place, birth_time
+    });
     return res.status(400).json({ message: 'Tüm alanlar zorunludur.' });
   }
 
@@ -66,7 +70,7 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await pool.query(
-      `INSERT INTO users (username, email, password, birthdate, phone, birth_place, birth_time)
+      `INSERT INTO users (username, email, password, birthdate, phone, birthplace, birthtime)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [name, email, hashedPassword, birthdate, phone, birth_place, birth_time]
     );
@@ -90,7 +94,7 @@ router.get('/profile', async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const [rows] = await pool.query(
-      'SELECT id, username, email, birthdate, phone, birth_place, birth_time FROM users WHERE id = ?',
+      'SELECT id, username, email, birthdate, phone, birthplace, birthtime FROM users WHERE id = ?',
       [decoded.id]
     );
 
