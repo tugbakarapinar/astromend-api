@@ -31,7 +31,7 @@ router.post('/login', async (req, res) => {
 
 // REGISTER
 router.post('/register', async (req, res) => {
-  console.log('📦 Gelen Body:', req.body); // <-- DEBUG LOGU
+  console.log('📦 Gelen Body:', req.body); // Debug log
 
   const {
     name,
@@ -44,7 +44,6 @@ router.post('/register', async (req, res) => {
     birth_time
   } = req.body;
 
-  // Alan doğrulama
   if (!name || !email || !password || !confirm_password || !birthdate || !phone || !birth_place || !birth_time) {
     return res.status(400).json({ message: 'Tüm alanlar zorunludur.' });
   }
