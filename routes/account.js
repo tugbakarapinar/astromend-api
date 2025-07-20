@@ -38,28 +38,25 @@ router.post('/register', async (req, res) => {
     confirm_password,
     birthdate,
     phone,
-    birthplace,
-    birthtime
+    birth_place,
+    birth_time
   } = req.body;
 
-  // Zorunlu alan kontrolü
-  if (!name || !email || !password || !confirm_password || !birthdate || !phone || !birthplace || !birthtime) {
+  // Alan doğrulamaları
+  if (!name || !email || !password || !confirm_password || !birthdate || !phone || !birth_place || !birth_time) {
     return res.status(400).json({ message: 'Tüm alanlar zorunludur.' });
   }
 
-  // Şifre eşleşmesi kontrolü
   if (password !== confirm_password) {
     return res.status(400).json({ message: 'Şifreler eşleşmiyor.' });
   }
 
   try {
-    // E-posta kontrolü
     const [emailExists] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
     if (emailExists.length > 0) {
       return res.status(400).json({ message: 'Bu e-posta zaten kayıtlı.' });
     }
 
-    // Telefon kontrolü
     const [phoneExists] = await pool.query('SELECT id FROM users WHERE phone = ?', [phone]);
     if (phoneExists.length > 0) {
       return res.status(400).json({ message: 'Bu telefon numarası zaten kayıtlı.' });
@@ -67,11 +64,10 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Kayıt işlemi
     await pool.query(
-      `INSERT INTO users (username, email, password, birthdate, phone, birthplace, birthtime)
+      `INSERT INTO users (username, email, password, birthdate, phone, birth_place, birth_time)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [name, email, hashedPassword, birthdate, phone, birthplace, birthtime]
+      [name, email, hashedPassword, birthdate, phone, birth_place, birth_time]
     );
 
     return res.status(201).json({ message: 'Kayıt başarılı.' });
@@ -79,6 +75,33 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error('Register error:', err);
     return res.status(500).json({ message: 'Sunucu hatası' });
+  }
+});
+
+// PROFILE
+router.get('/profile', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Yetkilendirme hatası' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const [rows] = await pool.query(
+      'SELECT id, username, email, birthdate, phone, birth_place, birth_time FROM users WHERE id = ?',
+      [decoded.id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
+    }
+
+    return res.status(200).json({ success: true, profile: rows[0] });
+
+  } catch (err) {
+    console.error('Profil error:', err);
+    return res.status(401).json({ message: 'Geçersiz token' });
   }
 });
 
