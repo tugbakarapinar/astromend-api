@@ -15,6 +15,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// Sağlık kontrolü
 app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -25,31 +26,31 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// User-related routes (register & login)
-app.use('/api/account', require('./routes/users'));
+// Kullanıcı giriş/kayıt işlemleri (login/register)
+app.use('/api/account', require('./routes/account'));
 
-// Diğer service router’ları
+// Diğer servis rotaları
 app.use('/api/messages',    require('./routes/messages'));
 app.use('/api/favoriler',   require('./routes/favoriler'));
 app.use('/api/hediyeler',   require('./routes/hediyeler'));
 app.use('/api/puan',        require('./routes/puan'));
 app.use('/api/bildirimler', require('./routes/bildirimler'));
 
-// BURÇLAR ROUTER’I
+// BURÇLAR
 const burclar = require('./routes/burclar');
 app.use('/api/burclar', burclar);
 
-// --- DOĞUM HARİTASI ROUTER’I (EKLENDİ) ---
+// DOĞUM HARİTASI
 const birthcharts = require('./routes/birthcharts');
 app.use('/api/birthcharts', birthcharts);
 
-// Hata yönetimi middleware’ı
+// Hata yakalayıcı middleware
 app.use((err, req, res, next) => {
   console.error('Error Handler:', err);
   res.status(500).json({ message: 'Sunucu hatası' });
 });
 
-// Server’ı başlat
+// Sunucuyu başlat
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
