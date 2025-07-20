@@ -4,39 +4,58 @@ const pool = require('../config/db');
 // Tüm mesajları getir
 exports.getAllMessages = async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM messages');
+    const [rows] = await pool.query('SELECT * FROM messages ORDER BY created_at ASC');
     res.json(rows);
   } catch (error) {
     res.status(500).json({ message: 'Mesajlar alınamadı', error });
   }
 };
 
-// Kullanıcıya ait mesajları getir
-exports.getMessagesByUser = async (req, res) => {
-  const userId = req.params.userId;
+// İki kullanıcı arasındaki tüm mesajları getir (chat ekranı için)
+exports.getConversation = async (req, res) => {
+  const { user1, user2 } = req.query;
+  if (!user1 || !user2) {
+    return res.status(400).json({ message: 'user1 ve user2 zorunludur.' });
+  }
   try {
-    const [rows] = await pool.query('SELECT * FROM messages WHERE user_id = ?', [userId]);
+    const [rows] = await pool.query(
+      `SELECT * FROM messages
+       WHERE (sender_id = ? AND receiver_id = ?)
+          OR (sender_id = ? AND receiver_id = ?)
+       ORDER BY created_at ASC`,
+      [user1, user2, user2, user1]
+    );
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: 'Kullanıcı mesajları alınamadı', error });
+    res.status(500).json({ message: 'Mesajlar alınamadı', error });
   }
 };
 
-// Yeni mesaj ekle
+// Yeni mesaj gönder (tabloya tam uyumlu!)
 exports.createMessage = async (req, res) => {
-  const { user_id, content } = req.body;
+  const { sender_id, receiver_id, message } = req.body;
+  if (!sender_id || !receiver_id || !message) {
+    return res.status(400).json({ message: 'sender_id, receiver_id ve message zorunludur.' });
+  }
   try {
     const [result] = await pool.query(
-      'INSERT INTO messages (user_id, content) VALUES (?, ?)',
-      [user_id, content]
+      'INSERT INTO messages (sender_id, receiver_id, message, is_read, created_at) VALUES (?, ?, ?, 0, NOW())',
+      [sender_id, receiver_id, message]
     );
-    res.status(201).json({ id: result.insertId, user_id, content });
+    res.status(201).json({
+      id: result.insertId,
+      sender_id,
+      receiver_id,
+      message,
+      is_read: 0,
+      created_at: new Date()
+    });
   } catch (error) {
     res.status(500).json({ message: 'Mesaj eklenemedi', error });
   }
 };
 
-// Mesaj sil
+// (Opsiyonel) Mesaj sil
 exports.deleteMessage = async (req, res) => {
   const messageId = req.params.id;
   try {
