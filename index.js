@@ -5,6 +5,10 @@ const pool = require('./config/db');
 
 const app = express();
 
+// PAYLAŞIMLAR
+const postsRouter = require('./routes/posts');
+app.use('/api/posts', postsRouter);
+
 // CORS & JSON body‐parser
 app.use(cors({ origin: '*' }));
 app.use(express.json());
