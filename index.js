@@ -5,19 +5,19 @@ const pool = require('./config/db');
 
 const app = express();
 
-// PAYLAŞIMLAR
-const postsRouter = require('./routes/posts');
-app.use('/api/posts', postsRouter);
-
 // CORS & JSON body‐parser
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// Debug logger
+// Debug logger - Tüm gelen istekleri loglar
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.originalUrl} >`, req.body);
   next();
 });
+
+// PAYLAŞIMLAR
+const postsRouter = require('./routes/posts');
+app.use('/api/posts', postsRouter);
 
 // Sağlık kontrolü
 app.get('/health', async (req, res) => {
@@ -48,7 +48,7 @@ app.use('/api/burclar', burclar);
 const birthcharts = require('./routes/birthcharts');
 app.use('/api/birthcharts', birthcharts);
 
-// Hata yakalayıcı middleware
+// Hata yakalayıcı middleware (en sonda!)
 app.use((err, req, res, next) => {
   console.error('Error Handler:', err);
   res.status(500).json({ message: 'Sunucu hatası' });
