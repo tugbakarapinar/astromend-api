@@ -14,7 +14,10 @@ exports.getAllMessages = async (req, res) => {
 exports.getMessagesByUser = async (req, res) => {
   const userId = req.params.userId;
   try {
-    const [rows] = await pool.query('SELECT * FROM messages WHERE user_id = ?', [userId]);
+    const [rows] = await pool.query(
+      'SELECT * FROM messages WHERE sender_id = ? OR receiver_id = ?',
+      [userId, userId]
+    );
     res.json(rows);
   } catch (error) {
     res.status(500).json({ message: 'Kullanıcı mesajları alınamadı', error });
@@ -23,13 +26,19 @@ exports.getMessagesByUser = async (req, res) => {
 
 // Yeni mesaj ekle
 exports.createMessage = async (req, res) => {
-  const { user_id, content } = req.body;
+  const { sender_id, receiver_id, message } = req.body;
   try {
     const [result] = await pool.query(
-      'INSERT INTO messages (user_id, content) VALUES (?, ?)',
-      [user_id, content]
+      'INSERT INTO messages (sender_id, receiver_id, message, is_read) VALUES (?, ?, ?, 0)',
+      [sender_id, receiver_id, message]
     );
-    res.status(201).json({ id: result.insertId, user_id, content });
+    res.status(201).json({ 
+      id: result.insertId, 
+      sender_id, 
+      receiver_id, 
+      message, 
+      is_read: 0 
+    });
   } catch (error) {
     res.status(500).json({ message: 'Mesaj eklenemedi', error });
   }
@@ -46,7 +55,7 @@ exports.deleteMessage = async (req, res) => {
   }
 };
 
-// --- EKLEDİĞİM ENDPOINT: Belirli iki kullanıcı arasındaki tüm mesajları sil ---
+// --- Belirli iki kullanıcı arasındaki tüm mesajları sil ---
 exports.deleteConversation = async (req, res) => {
   const { user1, user2 } = req.body;
   try {
