@@ -1,70 +1,64 @@
-const pool = require('../config/db');
+const pool = require("../config/db");
 
-// Tüm mesajları getir
+// 📌 Tüm mesajları getir
 exports.getAllMessages = async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM messages');
+    const [rows] = await pool.query(
+      "SELECT * FROM messages ORDER BY created_at DESC"
+    );
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: 'Mesajlar alınamadı', error });
+    console.error("❌ Mesajları alırken hata:", error);
+    res.status(500).json({ message: "Mesajlar alınamadı", error });
   }
 };
 
-// Kullanıcıya ait mesajları getir
-exports.getMessagesByUser = async (req, res) => {
-  const userId = req.params.userId;
+// 📌 Belirli iki kullanıcı arasındaki mesajları getir
+exports.getConversation = async (req, res) => {
+  const { user1, user2 } = req.params;
   try {
     const [rows] = await pool.query(
-      'SELECT * FROM messages WHERE sender_id = ? OR receiver_id = ?',
-      [userId, userId]
+      "SELECT * FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY created_at ASC",
+      [user1, user2, user2, user1]
     );
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: 'Kullanıcı mesajları alınamadı', error });
+    console.error("❌ Sohbet alınamadı:", error);
+    res.status(500).json({ message: "Sohbet alınamadı", error });
   }
 };
 
-// Yeni mesaj ekle
-exports.createMessage = async (req, res) => {
+// 📌 Yeni mesaj gönder
+exports.sendMessage = async (req, res) => {
   const { sender_id, receiver_id, message } = req.body;
   try {
-    const [result] = await pool.query(
-      'INSERT INTO messages (sender_id, receiver_id, message, is_read) VALUES (?, ?, ?, 0)',
+    await pool.query(
+      "INSERT INTO messages (sender_id, receiver_id, message, created_at) VALUES (?, ?, ?, NOW())",
       [sender_id, receiver_id, message]
     );
-    res.status(201).json({ 
-      id: result.insertId, 
-      sender_id, 
-      receiver_id, 
-      message, 
-      is_read: 0 
-    });
+    res.status(201).json({ message: "Mesaj gönderildi." });
   } catch (error) {
-    res.status(500).json({ message: 'Mesaj eklenemedi', error });
+    console.error("❌ Mesaj gönderilemedi:", error);
+    res.status(500).json({ message: "Mesaj gönderilemedi", error });
   }
 };
 
-// Mesaj sil
-exports.deleteMessage = async (req, res) => {
-  const messageId = req.params.id;
-  try {
-    await pool.query('DELETE FROM messages WHERE id = ?', [messageId]);
-    res.json({ message: 'Mesaj silindi' });
-  } catch (error) {
-    res.status(500).json({ message: 'Mesaj silinemedi', error });
-  }
-};
-
-// --- Belirli iki kullanıcı arasındaki tüm mesajları sil ---
+// 📌 Sohbeti sil (iki kullanıcı arasındaki TÜM mesajlar uçacak)
 exports.deleteConversation = async (req, res) => {
   const { user1, user2 } = req.body;
   try {
-    await pool.query(
-      'DELETE FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)',
+    const [result] = await pool.query(
+      "DELETE FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)",
       [user1, user2, user2, user1]
     );
-    res.json({ message: 'Sohbet silindi' });
+
+    if (result.affectedRows > 0) {
+      res.json({ message: "Sohbet temizlendi." });
+    } else {
+      res.json({ message: "Silinecek sohbet bulunamadı." });
+    }
   } catch (error) {
-    res.status(500).json({ message: 'Sohbet silinemedi', error });
+    console.error("❌ Sohbet silme hatası:", error);
+    res.status(500).json({ message: "Sohbet silinemedi", error });
   }
 };
