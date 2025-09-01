@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../db");
+const db = require("../config/db.js"); // ✅ düzeltilmiş import
 const multer = require("multer");
 const path = require("path");
 
@@ -12,7 +12,10 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     cb(
       null,
-      Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname)
+      Date.now() +
+        "-" +
+        Math.round(Math.random() * 1e9) +
+        path.extname(file.originalname)
     );
   },
 });
@@ -30,7 +33,17 @@ router.get("/", async (req, res) => {
        JOIN users ON posts.user_id = users.id
        ORDER BY posts.created_at DESC`
     );
-    res.json(rows);
+
+    // 📌 Resim URL'lerini tam hale getirelim
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const formatted = rows.map((post) => {
+      if (post.image_path) {
+        post.image_path = baseUrl + post.image_path;
+      }
+      return post;
+    });
+
+    res.json(formatted);
   } catch (err) {
     console.error("Gönderiler alınamadı:", err);
     res.status(500).json({ message: "Sunucu hatası" });
@@ -49,7 +62,7 @@ router.post("/", upload.single("image"), async (req, res) => {
     let imagePath = null;
 
     if (req.file) {
-      imagePath = "/uploads/" + req.file.filename; // 📌 Önemli düzeltme
+      imagePath = "/uploads/" + req.file.filename; // 📌 burada sadece relative path
     }
 
     if (!text && !imagePath) {
@@ -61,9 +74,17 @@ router.post("/", upload.single("image"), async (req, res) => {
     const values = [userId, text, imagePath];
     const [result] = await db.query(query, values);
 
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const fullImagePath = imagePath ? baseUrl + imagePath : null;
+
     return res.status(201).json({
       message: "Post başarıyla eklendi",
-      post: { id: result.insertId, user_id: userId, text, image_path: imagePath },
+      post: {
+        id: result.insertId,
+        user_id: userId,
+        text,
+        image_path: fullImagePath,
+      },
     });
   } catch (err) {
     console.error("Post ekleme hatası:", err);
@@ -86,7 +107,10 @@ router.post("/:id/like", async (req, res) => {
       return res.status(400).json({ message: "Zaten beğenilmiş" });
     }
 
-    await db.query("INSERT INTO likes (post_id, user_id) VALUES (?, ?)", [postId, userId]);
+    await db.query("INSERT INTO likes (post_id, user_id) VALUES (?, ?)", [
+      postId,
+      userId,
+    ]);
     res.status(201).json({ message: "Beğeni eklendi" });
   } catch (err) {
     console.error("Beğeni hatası:", err);
@@ -100,7 +124,10 @@ router.delete("/:id/like", async (req, res) => {
     const postId = req.params.id;
     const userId = req.user?.id || req.body.userId;
 
-    await db.query("DELETE FROM likes WHERE post_id = ? AND user_id = ?", [postId, userId]);
+    await db.query("DELETE FROM likes WHERE post_id = ? AND user_id = ?", [
+      postId,
+      userId,
+    ]);
     res.json({ message: "Beğeni kaldırıldı" });
   } catch (err) {
     console.error("Beğeni silme hatası:", err);
