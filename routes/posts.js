@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../config/db.js"); // ✅ düzeltilmiş import
+const db = require("../config/db.js"); // ✅ doğru import
 const multer = require("multer");
 const path = require("path");
 
@@ -27,8 +27,8 @@ router.get("/", async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT posts.*, users.username,
-              (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) AS likesCount,
-              (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS commentsCount
+              (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) AS likesCount,
+              (SELECT COUNT(*) FROM post_comments WHERE post_comments.post_id = posts.id) AS commentsCount
        FROM posts
        JOIN users ON posts.user_id = users.id
        ORDER BY posts.created_at DESC`
@@ -53,7 +53,7 @@ router.get("/", async (req, res) => {
 // ---- Yeni paylaşım ekle ----
 router.post("/", upload.single("image"), async (req, res) => {
   try {
-    const userId = req.user?.id || req.body.userId; // Token middleware varsa req.user.id gelir
+    const userId = req.user?.id || req.body.userId; 
     if (!userId) {
       return res.status(401).json({ message: "Kullanıcı bulunamadı." });
     }
@@ -62,7 +62,7 @@ router.post("/", upload.single("image"), async (req, res) => {
     let imagePath = null;
 
     if (req.file) {
-      imagePath = "/uploads/" + req.file.filename; // 📌 burada sadece relative path
+      imagePath = "/uploads/" + req.file.filename;
     }
 
     if (!text && !imagePath) {
@@ -99,7 +99,7 @@ router.post("/:id/like", async (req, res) => {
     const userId = req.user?.id || req.body.userId;
 
     const [existing] = await db.query(
-      "SELECT * FROM likes WHERE post_id = ? AND user_id = ?",
+      "SELECT * FROM post_likes WHERE post_id = ? AND user_id = ?",
       [postId, userId]
     );
 
@@ -107,7 +107,7 @@ router.post("/:id/like", async (req, res) => {
       return res.status(400).json({ message: "Zaten beğenilmiş" });
     }
 
-    await db.query("INSERT INTO likes (post_id, user_id) VALUES (?, ?)", [
+    await db.query("INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)", [
       postId,
       userId,
     ]);
@@ -124,7 +124,7 @@ router.delete("/:id/like", async (req, res) => {
     const postId = req.params.id;
     const userId = req.user?.id || req.body.userId;
 
-    await db.query("DELETE FROM likes WHERE post_id = ? AND user_id = ?", [
+    await db.query("DELETE FROM post_likes WHERE post_id = ? AND user_id = ?", [
       postId,
       userId,
     ]);
@@ -140,11 +140,11 @@ router.get("/:id/comments", async (req, res) => {
   try {
     const postId = req.params.id;
     const [rows] = await db.query(
-      `SELECT comments.*, users.username 
-       FROM comments 
-       JOIN users ON comments.user_id = users.id 
-       WHERE comments.post_id = ? 
-       ORDER BY comments.created_at ASC`,
+      `SELECT post_comments.*, users.username 
+       FROM post_comments 
+       JOIN users ON post_comments.user_id = users.id 
+       WHERE post_comments.post_id = ? 
+       ORDER BY post_comments.created_at ASC`,
       [postId]
     );
     res.json(rows);
@@ -166,7 +166,7 @@ router.post("/:id/comments", async (req, res) => {
     }
 
     await db.query(
-      "INSERT INTO comments (post_id, user_id, text, created_at) VALUES (?, ?, ?, NOW())",
+      "INSERT INTO post_comments (post_id, user_id, text, created_at) VALUES (?, ?, ?, NOW())",
       [postId, userId, text]
     );
     res.status(201).json({ message: "Yorum eklendi" });
