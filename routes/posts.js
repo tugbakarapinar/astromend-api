@@ -1,141 +1,151 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const pool = require('../config/db');
+const db = require("../db");
+const multer = require("multer");
+const path = require("path");
 
-// Tüm paylaşımları getir (GET /api/posts)
-router.get('/', async (req, res) => {
+// ---- Multer ayarları ----
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // 📌 uploads klasörüne kaydediyoruz
+  },
+  filename: function (req, file, cb) {
+    cb(
+      null,
+      Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname)
+    );
+  },
+});
+
+const upload = multer({ storage });
+
+// ---- Gönderi listeleme ----
+router.get("/", async (req, res) => {
   try {
-    const [rows] = await pool.query(`
-      SELECT posts.id, posts.text, posts.image_path, posts.created_at,
-             users.id as user_id, users.username,
-             (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likesCount,
-             (SELECT COUNT(*) FROM post_comments WHERE post_comments.post_id = posts.id) as commentsCount
-      FROM posts
-      INNER JOIN users ON posts.user_id = users.id
-      ORDER BY posts.created_at DESC
-    `);
+    const [rows] = await db.query(
+      `SELECT posts.*, users.username,
+              (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) AS likesCount,
+              (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS commentsCount
+       FROM posts
+       JOIN users ON posts.user_id = users.id
+       ORDER BY posts.created_at DESC`
+    );
     res.json(rows);
   } catch (err) {
-    console.error('GET /api/posts error:', err);
-    res.status(500).json({ message: 'Gönderiler yüklenirken hata oluştu.' });
+    console.error("Gönderiler alınamadı:", err);
+    res.status(500).json({ message: "Sunucu hatası" });
   }
 });
 
-// Yeni paylaşım ekle (POST /api/posts)
-router.post('/', async (req, res) => {
+// ---- Yeni paylaşım ekle ----
+router.post("/", upload.single("image"), async (req, res) => {
   try {
-    const { user_id, text, image_path } = req.body;
-    if (!user_id || (!text && !image_path)) {
-      return res.status(400).json({ message: 'Kullanıcı ve paylaşım içeriği zorunlu.' });
+    const userId = req.user?.id || req.body.userId; // Token middleware varsa req.user.id gelir
+    if (!userId) {
+      return res.status(401).json({ message: "Kullanıcı bulunamadı." });
     }
-    const [result] = await pool.query(
-      'INSERT INTO posts (user_id, text, image_path) VALUES (?, ?, ?)',
-      [user_id, text, image_path]
-    );
-    res.status(201).json({ success: true, post_id: result.insertId });
-  } catch (err) {
-    console.error('POST /api/posts error:', err);
-    res.status(500).json({ message: 'Paylaşım eklenirken hata oluştu.' });
-  }
-});
 
-// Bir paylaşımı beğen (POST /api/posts/:id/like)
-router.post('/:id/like', async (req, res) => {
-  try {
-    const post_id = req.params.id;
-    const { user_id } = req.body;
-    if (!user_id) return res.status(400).json({ message: 'user_id zorunlu.' });
+    const text = req.body.text || null;
+    let imagePath = null;
 
-    // Önceden beğenmiş mi kontrolü
-    const [check] = await pool.query(
-      'SELECT * FROM post_likes WHERE post_id = ? AND user_id = ?',
-      [post_id, user_id]
-    );
-    if (check.length) return res.status(400).json({ message: 'Zaten beğendiniz.' });
-
-    await pool.query(
-      'INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)',
-      [post_id, user_id]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    console.error('POST /api/posts/:id/like error:', err);
-    res.status(500).json({ message: 'Beğeni eklenirken hata oluştu.' });
-  }
-});
-
-// Beğeniyi kaldır (DELETE /api/posts/:id/like)
-router.delete('/:id/like', async (req, res) => {
-  try {
-    const post_id = req.params.id;
-    const { user_id } = req.body;
-    if (!user_id) return res.status(400).json({ message: 'user_id zorunlu.' });
-
-    await pool.query(
-      'DELETE FROM post_likes WHERE post_id = ? AND user_id = ?',
-      [post_id, user_id]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    console.error('DELETE /api/posts/:id/like error:', err);
-    res.status(500).json({ message: 'Beğeni silinirken hata oluştu.' });
-  }
-});
-
-// Beğenenleri getir (GET /api/posts/:id/likes)
-router.get('/:id/likes', async (req, res) => {
-  try {
-    const post_id = req.params.id;
-    const [rows] = await pool.query(
-      `SELECT users.id, users.username
-       FROM post_likes
-       INNER JOIN users ON post_likes.user_id = users.id
-       WHERE post_likes.post_id = ?`,
-      [post_id]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error('GET /api/posts/:id/likes error:', err);
-    res.status(500).json({ message: 'Beğeniler alınırken hata oluştu.' });
-  }
-});
-
-// Yorumları getir (GET /api/posts/:id/comments)
-router.get('/:id/comments', async (req, res) => {
-  try {
-    const post_id = req.params.id;
-    const [rows] = await pool.query(
-      `SELECT post_comments.id, post_comments.text, post_comments.created_at,
-              users.id as user_id, users.username
-         FROM post_comments
-        INNER JOIN users ON post_comments.user_id = users.id
-        WHERE post_comments.post_id = ?
-        ORDER BY post_comments.created_at ASC`,
-      [post_id]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error('GET /api/posts/:id/comments error:', err);
-    res.status(500).json({ message: 'Yorumlar alınırken hata oluştu.' });
-  }
-});
-
-// Yorum ekle (POST /api/posts/:id/comments)
-router.post('/:id/comments', async (req, res) => {
-  try {
-    const post_id = req.params.id;
-    const { user_id, text } = req.body;
-    if (!user_id || !text) {
-      return res.status(400).json({ message: 'user_id ve text zorunlu.' });
+    if (req.file) {
+      imagePath = "/uploads/" + req.file.filename; // 📌 Önemli düzeltme
     }
-    await pool.query(
-      'INSERT INTO post_comments (post_id, user_id, text) VALUES (?, ?, ?)',
-      [post_id, user_id, text]
-    );
-    res.status(201).json({ success: true });
+
+    if (!text && !imagePath) {
+      return res.status(400).json({ message: "Metin veya resim zorunlu." });
+    }
+
+    const query =
+      "INSERT INTO posts (user_id, text, image_path, created_at) VALUES (?,?,?,NOW())";
+    const values = [userId, text, imagePath];
+    const [result] = await db.query(query, values);
+
+    return res.status(201).json({
+      message: "Post başarıyla eklendi",
+      post: { id: result.insertId, user_id: userId, text, image_path: imagePath },
+    });
   } catch (err) {
-    console.error('POST /api/posts/:id/comments error:', err);
-    res.status(500).json({ message: 'Yorum eklenirken hata oluştu.' });
+    console.error("Post ekleme hatası:", err);
+    return res.status(500).json({ message: "Sunucu hatası" });
+  }
+});
+
+// ---- Beğenme ----
+router.post("/:id/like", async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user?.id || req.body.userId;
+
+    const [existing] = await db.query(
+      "SELECT * FROM likes WHERE post_id = ? AND user_id = ?",
+      [postId, userId]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({ message: "Zaten beğenilmiş" });
+    }
+
+    await db.query("INSERT INTO likes (post_id, user_id) VALUES (?, ?)", [postId, userId]);
+    res.status(201).json({ message: "Beğeni eklendi" });
+  } catch (err) {
+    console.error("Beğeni hatası:", err);
+    res.status(500).json({ message: "Sunucu hatası" });
+  }
+});
+
+// ---- Beğeniyi kaldır ----
+router.delete("/:id/like", async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user?.id || req.body.userId;
+
+    await db.query("DELETE FROM likes WHERE post_id = ? AND user_id = ?", [postId, userId]);
+    res.json({ message: "Beğeni kaldırıldı" });
+  } catch (err) {
+    console.error("Beğeni silme hatası:", err);
+    res.status(500).json({ message: "Sunucu hatası" });
+  }
+});
+
+// ---- Yorumları getir ----
+router.get("/:id/comments", async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const [rows] = await db.query(
+      `SELECT comments.*, users.username 
+       FROM comments 
+       JOIN users ON comments.user_id = users.id 
+       WHERE comments.post_id = ? 
+       ORDER BY comments.created_at ASC`,
+      [postId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Yorumlar alınamadı:", err);
+    res.status(500).json({ message: "Sunucu hatası" });
+  }
+});
+
+// ---- Yorum ekle ----
+router.post("/:id/comments", async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const userId = req.user?.id || req.body.userId;
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ message: "Yorum boş olamaz" });
+    }
+
+    await db.query(
+      "INSERT INTO comments (post_id, user_id, text, created_at) VALUES (?, ?, ?, NOW())",
+      [postId, userId, text]
+    );
+    res.status(201).json({ message: "Yorum eklendi" });
+  } catch (err) {
+    console.error("Yorum ekleme hatası:", err);
+    res.status(500).json({ message: "Sunucu hatası" });
   }
 });
 
